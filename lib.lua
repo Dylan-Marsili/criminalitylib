@@ -1084,6 +1084,7 @@ end
 
                         value = {Toggle = default and default.Toggle or false}
 
+                        local ToggleButton = ""
 
                         function element:set_visible(bool)
                             if bool then
