@@ -1541,6 +1541,62 @@ local toggle12 = sector2.element('Toggle', 'ESP ThunderStruck Trees', false, fun
     updateAllTrees(espEnabled)
 end)
 
+-- Toggles para Chams
+local toggleChamsBear = sector.element('Toggle', 'Chams Bear', false, function(v)
+    ChamsState.enabled.bear = v
+    if not v then
+        for model, highlight in pairs(ChamsState.highlights) do
+            if model.Name == "Bear" then
+                removeChams(model)
+            end
+        end
+    end
+end)
+
+local toggleChamsDeer = sector.element('Toggle', 'Chams Deer', false, function(v)
+    ChamsState.enabled.deer = v
+    if not v then
+        for model, highlight in pairs(ChamsState.highlights) do
+            if model.Name == "Deer" then
+                removeChams(model)
+            end
+        end
+    end
+end)
+
+local toggleChamsBison = sector.element('Toggle', 'Chams Bison', false, function(v)
+    ChamsState.enabled.bison = v
+    if not v then
+        for model, highlight in pairs(ChamsState.highlights) do
+            if model.Name == "Bison" then
+                removeChams(model)
+            end
+        end
+    end
+end)
+
+local toggleChamsCrocodile = sector.element('Toggle', 'Chams Crocodile', false, function(v)
+    ChamsState.enabled.crocodile = v
+    if not v then
+        for model, highlight in pairs(ChamsState.highlights) do
+            if model.Name == "Gator" then
+                removeChams(model)
+            end
+        end
+    end
+end)
+
+local toggleChamsPlayers = sector2.element('Toggle', 'Chams Players', false, function(v)
+    ChamsState.enabled.players = v
+    if not v then
+        for model, highlight in pairs(ChamsState.highlights) do
+            if model:FindFirstChild("Humanoid") then
+                removeChams(model)
+            end
+        end
+    end
+end)
+
 -- Funciones del Aimbot
 local function blockMouseInput(block)
     if block then
