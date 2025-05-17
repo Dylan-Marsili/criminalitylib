@@ -145,6 +145,8 @@ function library.new(library_title, cfg_location)
 	end
 
 
+	ScreenGui.Parent = game:GetService("CoreGui")
+
     function menu.IsOpen()
         return menu.open
     end
