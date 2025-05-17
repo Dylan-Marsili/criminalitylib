@@ -1,0 +1,1722 @@
+local library = loadstring(game:HttpGet('https://raw.githubusercontent.com/Dylan-Marsili/criminalitylib/refs/heads/main/lib.lua'))()
+
+-- // Window \\ --
+local window = library.new('WestZ', 'WestZ')
+
+-- // Tabs \\ --
+local tab = window.new_tab('rbxassetid://8395621517')
+local tab1 = window.new_tab('rbxassetid://4483345998')
+
+-- // Sections \\ --
+local section = tab.new_section('ESP')
+local section1 = tab.new_section('Combat')
+
+local section2 = tab1.new_section("")
+
+-- // Sector \\ --
+local sector = section.new_sector('Animals', 'Left')
+local sector1 = section.new_sector('Ores', 'Right')
+local sector2 = section.new_sector('Miscellaneous', 'Left')
+
+local sector3 = section2.new_sector('', 'Left')
+local sector4 = section2.new_sector('Credits', 'Right')
+
+local Services = {
+    UserInput = game:GetService("UserInputService"),
+    RunService = game:GetService("RunService"),
+    Players = game:GetService("Players"),
+    Camera = workspace.CurrentCamera,
+    Teleport = game:GetService("TeleportService"),
+    LocalPlayer = game:GetService("Players").LocalPlayer,
+    Workspace = workspace
+}
+
+-- Variables para Chams
+local ChamsState = {
+    enabled = {
+        bear = false,
+        deer = false,
+        bison = false,
+        crocodile = false,
+        players = false
+    },
+    highlights = {}
+}
+
+local State = {
+    espEnabled = {},
+    aiming = false,
+    aimbotEnabled = false,
+    connections = {},
+    fovAngle = math.rad(15),
+    currentTarget = nil
+}
+
+local mouse = Services.LocalPlayer:GetMouse()
+
+local button1 = sector4.element('Button', 'ESP & Aimbot by lucasbekk483', nil, function()
+
+end)
+local button2 = sector4.element('Button', 'Thunderstruck Tree ESP by taipe87', nil, function()
+
+end)
+
+local button3 = sector4.element('Button', 'UI by dyshh_.', nil, function()
+
+end)
+
+local button4 = sector3.element('Button', 'Rejoin', nil, function()
+	local queueteleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
+	local scriptToExecute = [[loadstring(game:HttpGet("https://pastebin.com/raw/2M7VFrRy"))()]]
+	if queueteleport then queueteleport(scriptToExecute) end
+	Services.LocalPlayer:Kick("\nRejoining...")
+	Services.Teleport:TeleportToPlaceInstance(game.PlaceId, game.JobId, Services.LocalPlayer)
+end)
+
+local button4 = sector3.element('Button', 'Launch Infinite Yield', nil, function()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+end)
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- Variable para controlar si el ESP está activo
+local espEnabled = false
+
+-- Función para verificar que el árbol tiene ambos efectos
+local function hasRequiredEffects(tree)
+    local trunk = tree:FindFirstChild("Trunk")
+    if not trunk then return false end
+    local attachment = trunk:FindFirstChild("Attachment")
+    if not attachment then return false end
+
+    local hasFlames = attachment:FindFirstChild("Flames") ~= nil
+    local hasSmoke = attachment:FindFirstChild("SmokeParticle") ~= nil
+
+    return hasFlames and hasSmoke
+end
+
+-- Crear o eliminar ESP para un árbol según el estado del toggle
+local function toggleESPForTree(tree, enable)
+    local trunk = tree:FindFirstChild("Trunk")
+    if not trunk then return end
+
+    if enable then
+        if not trunk:FindFirstChild("ESP") and hasRequiredEffects(tree) then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESP"
+            billboard.Adornee = trunk
+            billboard.Size = UDim2.new(0, 100, 0, 50)
+            billboard.AlwaysOnTop = true
+            billboard.Parent = trunk
+
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Size = UDim2.new(1, 0, 1, 0)
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = "Thunderstruck Tree"
+            textLabel.TextColor3 = Color3.new(0, 1, 0)
+            textLabel.TextScaled = false
+            textLabel.TextSize = 18
+            textLabel.Font = Enum.Font.SourceSans
+            textLabel.Parent = billboard
+        end
+    else
+        local esp = trunk:FindFirstChild("ESP")
+        if esp then
+            esp:Destroy()
+        end
+    end
+end
+
+-- Recorrer todos los árboles y activar o desactivar ESP según el toggle
+local function updateAllTrees(enable)
+    for _, region in pairs(Services.Workspace.WORKSPACE_Geometry:GetChildren()) do
+        if region:FindFirstChild("Trees") then
+            for _, tree in pairs(region.Trees:GetChildren()) do
+                toggleESPForTree(tree, enable)
+            end
+        end
+    end
+end
+
+
+-- Detectar árboles nuevos dinámicamente y actualizar ESP si está activo
+Services.Workspace.WORKSPACE_Geometry.ChildAdded:Connect(function(newRegion)
+    if newRegion:FindFirstChild("Trees") then
+        newRegion.Trees.ChildAdded:Connect(function(newTree)
+            if espEnabled then
+                toggleESPForTree(newTree, true)
+            end
+        end)
+    end
+end)
+
+for _, region in pairs(Services.Workspace.WORKSPACE_Geometry:GetChildren()) do
+    if region:FindFirstChild("Trees") then
+        region.Trees.ChildAdded:Connect(function(newTree)
+            if espEnabled then
+                toggleESPForTree(newTree, true)
+            end
+        end)
+    end
+end
+
+
+local deerEspEnabled = false
+local deerEspObjects = {}
+local deerWithEsp = {}
+local deerWithoutEsp = {}
+
+local deerPlayers = {} -- Lista de jugadores con ESP de ciervos
+local deerPlayer = game.Players.LocalPlayer
+local deerCamera = game.Workspace.CurrentCamera
+
+local DEER_MAX_TEXT_SIZE = 45 -- Tamaño máximo del texto para ciervos
+local DEER_MIN_TEXT_SIZE = 30 -- Tamaño mínimo del texto para ciervos
+local DEER_DISTANCE_THRESHOLD = 300 -- Distancia donde el texto es más pequeño
+
+local function updateDeerLists()
+    deerWithEsp = {}
+    deerWithoutEsp = {}
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Deer" then
+            if deerEspObjects[model] then
+                table.insert(deerWithEsp, model)
+            else
+                table.insert(deerWithoutEsp, model)
+            end
+        end
+    end
+    print("Con ESP:", #deerWithEsp)
+    print("Sin ESP:", #deerWithoutEsp)
+end
+
+local function updateDeerTextSize(billboard, primaryPart)
+    local distance = (deerCamera.CFrame.Position - primaryPart.Position).magnitude
+    local sizeRatio = math.clamp(distance / DEER_DISTANCE_THRESHOLD, 0, 1)
+    local newSize = math.clamp(DEER_MIN_TEXT_SIZE + sizeRatio * (DEER_MAX_TEXT_SIZE - DEER_MIN_TEXT_SIZE), DEER_MIN_TEXT_SIZE, DEER_MAX_TEXT_SIZE)
+    billboard.Size = UDim2.new(0, newSize, 0, newSize)
+end
+
+local function createDeerEsp(model)
+    if not model:IsA("Model") then return end
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not primaryPart then return end
+    
+    -- Crear la caja ESP para ciervos
+    local deerBox = Instance.new("BoxHandleAdornment")
+    deerBox.Size = primaryPart.Size + Vector3.new(1, 1, 1)
+    deerBox.Color3 = Color3.fromRGB(255, 255, 0) -- Amarillo
+    deerBox.Adornee = primaryPart
+    deerBox.AlwaysOnTop = true
+    deerBox.ZIndex = 5
+    deerBox.Transparency = 0.8
+    deerBox.Parent = primaryPart
+    
+    -- Crear el BillboardGui para el texto
+    local deerBillboard = Instance.new("BillboardGui")
+    deerBillboard.Size = UDim2.new(0, DEER_MAX_TEXT_SIZE, 0, DEER_MAX_TEXT_SIZE)
+    deerBillboard.StudsOffset = Vector3.new(0, 5, 0)
+    deerBillboard.Adornee = primaryPart
+    deerBillboard.AlwaysOnTop = true
+    deerBillboard.MaxDistance = math.huge
+    deerBillboard.Parent = primaryPart
+    
+    -- Etiqueta de vida
+    local vidaLabel = Instance.new("TextLabel")
+    vidaLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    vidaLabel.Position = UDim2.new(0.15, 0, 0, 0)
+    vidaLabel.BackgroundTransparency = 1
+    vidaLabel.Text = "Health: ???"
+    vidaLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+    vidaLabel.TextScaled = true
+    vidaLabel.Font = Enum.Font.SourceSansBold
+    vidaLabel.Parent = deerBillboard
+    
+    -- Etiqueta "Ciervo"
+    local deerTextLabel = Instance.new("TextLabel")
+    deerTextLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    deerTextLabel.Position = UDim2.new(0.15, 0, 0.5, 0)
+    deerTextLabel.BackgroundTransparency = 1
+    deerTextLabel.Text = "Deer"
+    deerTextLabel.TextColor3 = Color3.new(1, 1, 0) -- Amarillo
+    deerTextLabel.TextScaled = true
+    deerTextLabel.Font = Enum.Font.SourceSansBold
+    deerTextLabel.Parent = deerBillboard
+    
+    -- Actualizar el tamaño y la vida cada frame
+    game:GetService("RunService").RenderStepped:Connect(function()
+        updateDeerTextSize(deerBillboard, primaryPart)
+        
+        local healthValue = model:FindFirstChild("Health")
+        if healthValue and (healthValue:IsA("IntValue") or healthValue:IsA("NumberValue")) then
+            vidaLabel.Text = "Health: " .. math.floor(healthValue.Value)
+        else
+            vidaLabel.Text = "Health: ???"
+        end
+    end)
+    
+    deerEspObjects[model] = {deerBox, deerBillboard}
+    updateDeerLists()
+end
+
+local function removeDeerEsp()
+    for model, objects in pairs(deerEspObjects) do
+        for _, obj in ipairs(objects) do
+            obj:Destroy()
+        end
+        deerEspObjects[model] = nil
+    end
+    updateDeerLists()
+end
+
+-- Detectar si se añaden nuevos "Deer"
+local function monitorDeerEntities()
+    -- Verificar por "Deer" ya existentes al principio
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Deer" and not deerEspObjects[model] then
+            createDeerEsp(model)
+        end
+    end
+
+    -- Escuchar si nuevos "Deer" aparecen
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if deerEspEnabled then
+            for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+                if model:IsA("Model") and model.Name == "Deer" and not deerEspObjects[model] then
+                    createDeerEsp(model)
+                end
+            end
+        end
+    end)
+end
+
+
+
+
+local bisonEspEnabled = false
+local bisonEspObjects = {}
+local bisonWithEsp = {}
+local bisonWithoutEsp = {}
+
+local bisonPlayers = {} -- Lista de jugadores con ESP de bisonte
+local bisonPlayer = game.Players.LocalPlayer
+local bisonCamera = game.Workspace.CurrentCamera
+
+local BISON_MAX_TEXT_SIZE = 45 -- Tamaño máximo del texto para bisonte
+local BISON_MIN_TEXT_SIZE = 30 -- Tamaño mínimo del texto para bisonte
+local BISON_DISTANCE_THRESHOLD = 300 -- Distancia donde el texto es más pequeño
+
+local function updateBisonLists()
+    bisonWithEsp = {}
+    bisonWithoutEsp = {}
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Bison" then
+            if bisonEspObjects[model] then
+                table.insert(bisonWithEsp, model)
+            else
+                table.insert(bisonWithoutEsp, model)
+            end
+        end
+    end
+    print("Con ESP:", #bisonWithEsp)
+    print("Sin ESP:", #bisonWithoutEsp)
+end
+
+local function updateBisonTextSize(billboard, primaryPart)
+    local distance = (bisonCamera.CFrame.Position - primaryPart.Position).magnitude
+    local sizeRatio = math.clamp(distance / BISON_DISTANCE_THRESHOLD, 0, 1)
+    local newSize = math.clamp(BISON_MIN_TEXT_SIZE + sizeRatio * (BISON_MAX_TEXT_SIZE - BISON_MIN_TEXT_SIZE), BISON_MIN_TEXT_SIZE, BISON_MAX_TEXT_SIZE)
+    billboard.Size = UDim2.new(0, newSize, 0, newSize)
+end
+
+local function createBisonEsp(model)
+    if not model:IsA("Model") then return end
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not primaryPart then return end
+    
+    -- Crear la caja ESP para bisonte
+    local bisonBox = Instance.new("BoxHandleAdornment")
+    bisonBox.Size = primaryPart.Size + Vector3.new(1, 1, 1)
+    bisonBox.Color3 = Color3.fromRGB(255, 255, 0) -- Amarillo
+    bisonBox.Adornee = primaryPart
+    bisonBox.AlwaysOnTop = true
+    bisonBox.ZIndex = 5
+    bisonBox.Transparency = 0.8
+    bisonBox.Parent = primaryPart
+    
+    -- Crear el BillboardGui para el texto
+    local bisonBillboard = Instance.new("BillboardGui")
+    bisonBillboard.Size = UDim2.new(0, BISON_MAX_TEXT_SIZE, 0, BISON_MAX_TEXT_SIZE)
+    bisonBillboard.StudsOffset = Vector3.new(0, 5, 0)
+    bisonBillboard.Adornee = primaryPart
+    bisonBillboard.AlwaysOnTop = true
+    bisonBillboard.MaxDistance = math.huge
+    bisonBillboard.Parent = primaryPart
+    
+    -- Etiqueta de vida
+    local vidaLabel = Instance.new("TextLabel")
+    vidaLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    vidaLabel.Position = UDim2.new(0.15, 0, 0, 0)
+    vidaLabel.BackgroundTransparency = 1
+    vidaLabel.Text = "Health: ???"
+    vidaLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+    vidaLabel.TextScaled = true
+    vidaLabel.Font = Enum.Font.SourceSansBold
+    vidaLabel.Parent = bisonBillboard
+    
+    -- Etiqueta "Bisonte"
+    local bisonTextLabel = Instance.new("TextLabel")
+    bisonTextLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    bisonTextLabel.Position = UDim2.new(0.15, 0, 0.5, 0)
+    bisonTextLabel.BackgroundTransparency = 1
+    bisonTextLabel.Text = "Bison"
+    bisonTextLabel.TextColor3 = Color3.new(1, 1, 0) -- Amarillo
+    bisonTextLabel.TextScaled = true
+    bisonTextLabel.Font = Enum.Font.SourceSansBold
+    bisonTextLabel.Parent = bisonBillboard
+    
+    -- Actualizar el tamaño y la vida cada frame
+    game:GetService("RunService").RenderStepped:Connect(function()
+        updateBisonTextSize(bisonBillboard, primaryPart)
+
+        local healthValue = model:FindFirstChild("Health")
+        if healthValue and (healthValue:IsA("IntValue") or healthValue:IsA("NumberValue")) then
+            vidaLabel.Text = "Health: " .. math.floor(healthValue.Value)
+        else
+            vidaLabel.Text = "Health: ???"
+        end
+    end)
+
+    bisonEspObjects[model] = {bisonBox, bisonBillboard}
+    updateBisonLists()
+end
+
+local function removeBisonEsp()
+    for model, objects in pairs(bisonEspObjects) do
+        for _, obj in ipairs(objects) do
+            obj:Destroy()
+        end
+        bisonEspObjects[model] = nil
+    end
+    updateBisonLists()
+end
+
+-- Detectar si se añaden nuevos "Bison"
+local function monitorBisonEntities()
+    -- Verificar por "Bison" ya existentes al principio
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Bison" and not bisonEspObjects[model] then
+            createBisonEsp(model)
+        end
+    end
+
+    -- Escuchar si nuevos "Bison" aparecen
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if bisonEspEnabled then
+            for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+                if model:IsA("Model") and model.Name == "Bison" and not bisonEspObjects[model] then
+                    createBisonEsp(model)
+                end
+            end
+        end
+    end)
+end
+
+
+
+
+
+local cocodrileEspEnabled = false
+local cocodrileEspObjects = {}
+local cocodrileWithEsp = {}
+local cocodrileWithoutEsp = {}
+
+local cocodrilePlayers = {} -- Lista de jugadores con ESP de cocodrilos
+local cocodrilePlayer = game.Players.LocalPlayer
+local cocodrileCamera = game.Workspace.CurrentCamera
+
+local COCODRILE_MAX_TEXT_SIZE = 45 -- Tamaño máximo del texto para cocodrilos
+local COCODRILE_MIN_TEXT_SIZE = 30 -- Tamaño mínimo del texto para cocodrilos
+local COCODRILE_DISTANCE_THRESHOLD = 300 -- Distancia donde el texto es más pequeño
+
+local function updateCocodrileLists()
+    cocodrileWithEsp = {}
+    cocodrileWithoutEsp = {}
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Gator" then
+            if cocodrileEspObjects[model] then
+                table.insert(cocodrileWithEsp, model)
+            else
+                table.insert(cocodrileWithoutEsp, model)
+            end
+        end
+    end
+    print("Con ESP:", #cocodrileWithEsp)
+    print("Sin ESP:", #cocodrileWithoutEsp)
+end
+
+local function updateCocodrileTextSize(billboard, primaryPart)
+    local distance = (cocodrileCamera.CFrame.Position - primaryPart.Position).magnitude
+    local sizeRatio = math.clamp(distance / COCODRILE_DISTANCE_THRESHOLD, 0, 1)
+    local newSize = math.clamp(COCODRILE_MIN_TEXT_SIZE + sizeRatio * (COCODRILE_MAX_TEXT_SIZE - COCODRILE_MIN_TEXT_SIZE), COCODRILE_MIN_TEXT_SIZE, COCODRILE_MAX_TEXT_SIZE)
+    billboard.Size = UDim2.new(0, newSize, 0, newSize)
+end
+
+local function createCocodrileEsp(model)
+    if not model:IsA("Model") then return end
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not primaryPart then return end
+    
+    -- Crear la caja ESP para cocodrilos
+    local cocodrileBox = Instance.new("BoxHandleAdornment")
+    cocodrileBox.Size = primaryPart.Size + Vector3.new(1, 1, 1)
+    cocodrileBox.Color3 = Color3.fromRGB(255, 255, 0) -- Amarillo
+    cocodrileBox.Adornee = primaryPart
+    cocodrileBox.AlwaysOnTop = true
+    cocodrileBox.ZIndex = 5
+    cocodrileBox.Transparency = 0.8
+    cocodrileBox.Parent = primaryPart
+    
+    -- Crear el BillboardGui para el texto
+    local cocodrileBillboard = Instance.new("BillboardGui")
+    cocodrileBillboard.Size = UDim2.new(0, COCODRILE_MAX_TEXT_SIZE, 0, COCODRILE_MAX_TEXT_SIZE)
+    cocodrileBillboard.StudsOffset = Vector3.new(0, 5, 0)
+    cocodrileBillboard.Adornee = primaryPart
+    cocodrileBillboard.AlwaysOnTop = true
+    cocodrileBillboard.MaxDistance = math.huge
+    cocodrileBillboard.Parent = primaryPart
+    
+    -- Etiqueta de vida
+    local vidaLabel = Instance.new("TextLabel")
+    vidaLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    vidaLabel.Position = UDim2.new(0.15, 0, 0, 0)
+    vidaLabel.BackgroundTransparency = 1
+    vidaLabel.Text = "Health: ???"
+    vidaLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+    vidaLabel.TextScaled = true
+    vidaLabel.Font = Enum.Font.SourceSansBold
+    vidaLabel.Parent = cocodrileBillboard
+    
+    -- Etiqueta "Cocodrilo"
+    local cocodrileTextLabel = Instance.new("TextLabel")
+    cocodrileTextLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    cocodrileTextLabel.Position = UDim2.new(0.15, 0, 0.5, 0)
+    cocodrileTextLabel.BackgroundTransparency = 1
+    cocodrileTextLabel.Text = "Crocodile"
+    cocodrileTextLabel.TextColor3 = Color3.new(1, 1, 0) -- Amarillo
+    cocodrileTextLabel.TextScaled = true
+    cocodrileTextLabel.Font = Enum.Font.SourceSansBold
+    cocodrileTextLabel.Parent = cocodrileBillboard
+    
+    -- Actualizar el tamaño y la vida cada frame
+    game:GetService("RunService").RenderStepped:Connect(function()
+        updateCocodrileTextSize(cocodrileBillboard, primaryPart)
+
+        local healthValue = model:FindFirstChild("Health")
+        if healthValue and (healthValue:IsA("IntValue") or healthValue:IsA("NumberValue")) then
+            vidaLabel.Text = "Health: " .. math.floor(healthValue.Value)
+        else
+            vidaLabel.Text = "Health: ???"
+        end
+    end)
+
+    cocodrileEspObjects[model] = {cocodrileBox, cocodrileBillboard}
+    updateCocodrileLists()
+end
+
+local function removeCocodrileEsp()
+    for model, objects in pairs(cocodrileEspObjects) do
+        for _, obj in ipairs(objects) do
+            obj:Destroy()
+        end
+        cocodrileEspObjects[model] = nil
+    end
+    updateCocodrileLists()
+end
+
+-- Detectar si se añaden nuevos "Cocodrile"
+local function monitorCocodrileEntities()
+    -- Verificar por "Cocodrile" ya existentes al principio
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Cocodrile" and not cocodrileEspObjects[model] then
+            createCocodrileEsp(model)
+        end
+    end
+
+    -- Escuchar si nuevos "Cocodrile" aparecen
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if cocodrileEspEnabled then
+            for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+                if model:IsA("Model") and model.Name == "Gator" and not cocodrileEspObjects[model] then
+                    createCocodrileEsp(model)
+                end
+            end
+        end
+    end)
+end
+
+
+
+
+local bearEspEnabled = false
+local bearEspObjects = {}
+local bearWithEsp = {}
+local bearWithoutEsp = {}
+
+local bearPlayers = {}
+local bearPlayer = game.Players.LocalPlayer
+local bearCamera = game.Workspace.CurrentCamera
+
+local BEAR_MAX_TEXT_SIZE = 45
+local BEAR_MIN_TEXT_SIZE = 30
+local BEAR_DISTANCE_THRESHOLD = 300
+
+local function updateBearLists()
+    bearWithEsp = {}
+    bearWithoutEsp = {}
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Bear" then
+            if bearEspObjects[model] then
+                table.insert(bearWithEsp, model)
+            else
+                table.insert(bearWithoutEsp, model)
+            end
+        end
+    end
+    print("Con ESP:", #bearWithEsp)
+    print("Sin ESP:", #bearWithoutEsp)
+end
+
+local function updateBearTextSize(billboard, primaryPart)
+    local distance = (bearCamera.CFrame.Position - primaryPart.Position).magnitude
+    local sizeRatio = math.clamp(distance / BEAR_DISTANCE_THRESHOLD, 0, 1)
+    local newSize = math.clamp(BEAR_MIN_TEXT_SIZE + sizeRatio * (BEAR_MAX_TEXT_SIZE - BEAR_MIN_TEXT_SIZE), BEAR_MIN_TEXT_SIZE, BEAR_MAX_TEXT_SIZE)
+    billboard.Size = UDim2.new(0, newSize, 0, newSize)
+end
+
+local function createBearEsp(model)
+    if not model:IsA("Model") then return end
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not primaryPart then return end
+
+    local bearBox = Instance.new("BoxHandleAdornment")
+    bearBox.Size = primaryPart.Size + Vector3.new(1, 1, 1)
+    bearBox.Color3 = Color3.fromRGB(255, 255, 0)
+    bearBox.Adornee = primaryPart
+    bearBox.AlwaysOnTop = true
+    bearBox.ZIndex = 5
+    bearBox.Transparency = 0.8
+    bearBox.Parent = primaryPart
+
+    local bearBillboard = Instance.new("BillboardGui")
+    bearBillboard.Size = UDim2.new(0, BEAR_MAX_TEXT_SIZE, 0, BEAR_MAX_TEXT_SIZE)
+    bearBillboard.StudsOffset = Vector3.new(0, 5, 0)
+    bearBillboard.Adornee = primaryPart
+    bearBillboard.AlwaysOnTop = true
+    bearBillboard.MaxDistance = math.huge
+    bearBillboard.Parent = primaryPart
+
+    -- Etiqueta de vida
+    local vidaLabel = Instance.new("TextLabel")
+    vidaLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    vidaLabel.Position = UDim2.new(0.15, 0, 0, 0)
+    vidaLabel.BackgroundTransparency = 1
+    vidaLabel.Text = "Health: ???"
+    vidaLabel.TextColor3 = Color3.fromRGB(255, 85, 85)
+    vidaLabel.TextScaled = true
+    vidaLabel.Font = Enum.Font.SourceSansBold
+    vidaLabel.Parent = bearBillboard
+
+    -- Etiqueta "Oso"
+    local bearTextLabel = Instance.new("TextLabel")
+    bearTextLabel.Size = UDim2.new(0.7, 0, 0.35, 0)
+    bearTextLabel.Position = UDim2.new(0.15, 0, 0.5, 0)
+    bearTextLabel.BackgroundTransparency = 1
+    bearTextLabel.Text = "Bear"
+    bearTextLabel.TextColor3 = Color3.new(1, 1, 0)
+    bearTextLabel.TextScaled = true
+    bearTextLabel.Font = Enum.Font.SourceSansBold
+    bearTextLabel.Parent = bearBillboard
+
+    -- Actualizar cada frame
+    game:GetService("RunService").RenderStepped:Connect(function()
+        updateBearTextSize(bearBillboard, primaryPart)
+
+        local healthValue = model:FindFirstChild("Health")
+        if healthValue and (healthValue:IsA("IntValue") or healthValue:IsA("NumberValue")) then
+            vidaLabel.Text = "Health: " .. math.floor(healthValue.Value)
+        else
+            vidaLabel.Text = "Health: ???"
+        end
+    end)
+
+    bearEspObjects[model] = {bearBox, bearBillboard}
+    updateBearLists()
+end
+
+local function removeBearEsp()
+    for model, objects in pairs(bearEspObjects) do
+        for _, obj in ipairs(objects) do
+            obj:Destroy()
+        end
+        bearEspObjects[model] = nil
+    end
+    updateBearLists()
+end
+
+local function monitorBearEntities()
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+        if model:IsA("Model") and model.Name == "Bear" and not bearEspObjects[model] then
+            createBearEsp(model)
+        end
+    end
+
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if bearEspEnabled then
+            for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+                if model:IsA("Model") and model.Name == "Bear" and not bearEspObjects[model] then
+                    createBearEsp(model)
+                end
+            end
+        end
+    end)
+end
+
+
+local playerEspEnabled = false
+local playerEspObjects = {}
+local playersWithEsp = {}
+local playersWithoutEsp = {}
+
+local localPlayer = game.Players.LocalPlayer
+local gameCamera = game.Workspace.CurrentCamera
+
+local PLAYER_MAX_TEXT_SIZE = 70 -- Tamaño máximo del texto
+local PLAYER_MIN_TEXT_SIZE = 35 -- Tamaño mínimo del texto
+local PLAYER_DISTANCE_THRESHOLD = 200 -- Distancia donde el texto es más pequeño
+
+local function getPlayerColor(player)
+    if player.Team then
+        if player.Team.Name == "Citizens" then
+            return Color3.fromRGB(0, 255, 0) -- Verde para Citizens
+        elseif player.Team.Name == "Outlaws" then
+            return Color3.fromRGB(255, 0, 0) -- Rojo para Outlaws
+        end
+    end
+    return Color3.fromRGB(255, 255, 255) -- Blanco por defecto si no tiene equipo
+end
+
+local function updatePlayerLists()
+    playersWithEsp = {}
+    playersWithoutEsp = {}
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Players:GetChildren()) do
+        if model:IsA("Model") and model.Name ~= localPlayer.Name then
+            if playerEspObjects[model] then
+                table.insert(playersWithEsp, model)
+            else
+                table.insert(playersWithoutEsp, model)
+            end
+        end
+    end
+    print("Con ESP:", #playersWithEsp)
+    print("Sin ESP:", #playersWithoutEsp)
+end
+
+local function updatePlayerTextSize(billboard, primaryPart)
+    local distance = (gameCamera.CFrame.Position - primaryPart.Position).magnitude
+    local sizeRatio = math.clamp(distance / PLAYER_DISTANCE_THRESHOLD, 0, 1)
+    local newSize = math.clamp(PLAYER_MIN_TEXT_SIZE + sizeRatio * (PLAYER_MAX_TEXT_SIZE - PLAYER_MIN_TEXT_SIZE), PLAYER_MIN_TEXT_SIZE, PLAYER_MAX_TEXT_SIZE)
+    billboard.Size = UDim2.new(0, newSize, 0, newSize)
+end
+
+local function createPlayerEsp(model)
+    if not model:IsA("Model") or model.Name == localPlayer.Name then return end
+    local primaryPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart")
+    if not primaryPart then return end
+    
+    local player = game.Players:FindFirstChild(model.Name)
+    if not player then return end
+    local espColor = getPlayerColor(player)
+
+    -- Crear la caja ESP para jugadores
+    local playerBox = Instance.new("BoxHandleAdornment")
+    playerBox.Size = primaryPart.Size + Vector3.new(1, 1, 1)
+    playerBox.Color3 = espColor
+    playerBox.Adornee = primaryPart
+    playerBox.AlwaysOnTop = true
+    playerBox.ZIndex = 5
+    playerBox.Transparency = 0.8
+    playerBox.Parent = primaryPart
+    
+    -- Crear el texto sobre los jugadores
+    local playerBillboard = Instance.new("BillboardGui")
+    playerBillboard.Size = UDim2.new(0, PLAYER_MAX_TEXT_SIZE, 0, PLAYER_MAX_TEXT_SIZE)
+    playerBillboard.StudsOffset = Vector3.new(0, 5, 0)
+    playerBillboard.Adornee = primaryPart
+    playerBillboard.AlwaysOnTop = true
+    playerBillboard.MaxDistance = math.huge
+    playerBillboard.Parent = primaryPart
+    
+    local playerTextLabel = Instance.new("TextLabel")
+    playerTextLabel.Size = UDim2.new(1, 0, 1, 0)
+    playerTextLabel.BackgroundTransparency = 1
+    playerTextLabel.Text = model.Name -- Muestra el nombre del jugador
+    playerTextLabel.TextColor3 = espColor
+    playerTextLabel.TextScaled = true
+    playerTextLabel.Font = Enum.Font.SourceSansBold
+    playerTextLabel.Parent = playerBillboard
+    
+    -- Actualizar el tamaño del texto
+    updatePlayerTextSize(playerBillboard, primaryPart)
+
+    -- Conectar la actualización del tamaño del texto cada frame
+    game:GetService("RunService").RenderStepped:Connect(function()
+        updatePlayerTextSize(playerBillboard, primaryPart)
+    end)
+
+    playerEspObjects[model] = {playerBox, playerBillboard}
+    updatePlayerLists()
+end
+
+local function removePlayerEsp()
+    for model, objects in pairs(playerEspObjects) do
+        for _, obj in ipairs(objects) do
+            obj:Destroy()
+        end
+        playerEspObjects[model] = nil
+    end
+    updatePlayerLists()
+end
+
+-- Detectar si se añaden nuevos jugadores
+local function monitorPlayerEntities()
+    -- Verificar jugadores ya existentes al inicio
+    for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Players:GetChildren()) do
+        if model:IsA("Model") and model.Name ~= localPlayer.Name and not playerEspObjects[model] then
+            createPlayerEsp(model)
+        end
+    end
+
+    -- Escuchar si nuevos jugadores aparecen
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if playerEspEnabled then
+            for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Players:GetChildren()) do
+                if model:IsA("Model") and model.Name ~= localPlayer.Name and not playerEspObjects[model] then
+                    createPlayerEsp(model)
+                end
+            end
+        end
+    end)
+end
+
+
+
+local PlayersCoal = game:GetService("Players")
+local CoreGuiCoal = game:GetService("CoreGui")
+
+local LocalPlayerCoal = PlayersCoal.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Coal", "CoalVein"}  -- Podés agregar más como "Gold", "Copper", etc.
+
+local EspCoalFolder = Instance.new("Folder")
+EspCoalFolder.Name = "ESP_Coal_GUI"
+EspCoalFolder.Parent = CoreGuiCoal
+
+local EspCoalEnabled = false
+local EspCoalConnections = {}
+
+local function CrearEspCoal(partCoal)
+    local rockBase = partCoal:FindFirstChild("RockBase") or partCoal:FindFirstChild("RockBaseVein") or partCoal:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+    -- BillboardGui con texto
+    local billboardCoal = Instance.new("BillboardGui")
+    billboardCoal.Name = "OreESP"
+    billboardCoal.Size = UDim2.new(0, 100, 0, 20)
+    billboardCoal.Adornee = rockBase
+    billboardCoal.AlwaysOnTop = true
+    billboardCoal.StudsOffset = Vector3.new(0, 2, 0)
+    billboardCoal.Parent = EspCoalFolder
+
+    local labelCoal = Instance.new("TextLabel")
+    labelCoal.Size = UDim2.new(1, 0, 1, 0)
+    labelCoal.BackgroundTransparency = 1
+    labelCoal.Text = "Coal"
+    labelCoal.TextColor3 = Color3.new(0, 0, 0)
+    labelCoal.TextStrokeColor3 = Color3.new(1, 1, 1)
+    labelCoal.TextStrokeTransparency = 0
+    labelCoal.TextScaled = true
+    labelCoal.Font = Enum.Font.SourceSansBold
+    labelCoal.Parent = billboardCoal
+
+    -- SelectionBox
+    local selectionBoxCoal = Instance.new("SelectionBox")
+    selectionBoxCoal.Name = "OreESPBox"
+    selectionBoxCoal.Adornee = rockBase
+    selectionBoxCoal.Parent = EspCoalFolder
+    selectionBoxCoal.SurfaceTransparency = 0.95
+    selectionBoxCoal.LineThickness = 0.04
+    selectionBoxCoal.Color3 = Color3.fromRGB(0, 255, 255)
+end
+
+local function ActivarEspCoal()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            -- Crear ESP para cada depósito ya existente
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspCoal(hijo)
+            end
+
+            -- Detectar nuevos depósitos
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspCoal(nuevo)
+            end)
+            table.insert(EspCoalConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspCoal()
+    EspCoalFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspCoalConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspCoalConnections)
+end
+
+
+
+
+local PlayersCopper = game:GetService("Players")
+local CoreGuiCopper = game:GetService("CoreGui")
+
+local LocalPlayerCopper = PlayersCopper.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Copper", "CopperVein"}  -- Podés agregar más como "Gold", "Iron", etc.
+
+local EspCopperFolder = Instance.new("Folder")
+EspCopperFolder.Name = "ESP_Copper_GUI"
+EspCopperFolder.Parent = CoreGuiCopper
+
+local EspCopperEnabled = false
+local EspCopperConnections = {}
+
+local function CrearEspCopper(partCopper)
+    local rockBase = partCopper:FindFirstChild("RockBase") or partCopper:FindFirstChild("RockBaseVein") or partCopper:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+-- BillboardGui con texto
+local billboardCopper = Instance.new("BillboardGui")
+billboardCopper.Name = "CopperESP"
+billboardCopper.Size = UDim2.new(0, 100, 0, 20)
+billboardCopper.Adornee = rockBase
+billboardCopper.AlwaysOnTop = true
+billboardCopper.StudsOffset = Vector3.new(0, 2, 0)
+billboardCopper.Parent = EspCopperFolder
+
+local labelCopper = Instance.new("TextLabel")
+labelCopper.Size = UDim2.new(1, 0, 1, 0)
+labelCopper.BackgroundTransparency = 1
+labelCopper.Text = "Copper"
+labelCopper.TextColor3 = Color3.fromRGB(184, 115, 51) -- Color cobre
+labelCopper.TextStrokeColor3 = Color3.new(1, 1, 1) -- Contorno blanco
+labelCopper.TextStrokeTransparency = 0
+labelCopper.TextScaled = true
+labelCopper.Font = Enum.Font.SourceSansBold
+labelCopper.Parent = billboardCopper
+
+-- SelectionBox para la caja ESP
+local selectionBoxCopper = Instance.new("SelectionBox")
+selectionBoxCopper.Name = "CopperESPBox"
+selectionBoxCopper.Adornee = rockBase
+selectionBoxCopper.Parent = EspCopperFolder
+selectionBoxCopper.SurfaceTransparency = 0.95
+selectionBoxCopper.LineThickness = 0.04
+selectionBoxCopper.Color3 = Color3.fromRGB(184, 115, 51) -- Color cobre
+end
+
+local function ActivarEspCopper()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            -- Crear ESP para cada depósito ya existente
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspCopper(hijo)
+            end
+
+            -- Detectar nuevos depósitos
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspCopper(nuevo)
+            end)
+            table.insert(EspCopperConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspCopper()
+    EspCopperFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspCopperConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspCopperConnections)
+end
+
+
+
+
+local PlayersGold = game:GetService("Players")
+local CoreGuiGold = game:GetService("CoreGui")
+
+local LocalPlayerGold = PlayersGold.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Gold", "GoldVein"}  -- Podés agregar más como "Iron", "Silver", etc.
+
+local EspGoldFolder = Instance.new("Folder")
+EspGoldFolder.Name = "ESP_Gold_GUI"
+EspGoldFolder.Parent = CoreGuiGold
+
+local EspGoldEnabled = false
+local EspGoldConnections = {}
+
+local function CrearEspGold(partGold)
+    local rockBase = partGold:FindFirstChild("RockBase") or partGold:FindFirstChild("RockBaseVein") or partGold:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+    -- BillboardGui con texto
+    local billboardGold = Instance.new("BillboardGui")
+    billboardGold.Name = "GoldESP"
+    billboardGold.Size = UDim2.new(0, 100, 0, 20)
+    billboardGold.Adornee = rockBase
+    billboardGold.AlwaysOnTop = true
+    billboardGold.StudsOffset = Vector3.new(0, 2, 0)
+    billboardGold.Parent = EspGoldFolder
+
+    local labelGold = Instance.new("TextLabel")
+    labelGold.Size = UDim2.new(1, 0, 1, 0)
+    labelGold.BackgroundTransparency = 1
+    labelGold.Text = "Gold"
+    labelGold.TextColor3 = Color3.fromRGB(255, 215, 0) -- Color dorado
+    labelGold.TextStrokeColor3 = Color3.new(1, 1, 1) -- Contorno blanco
+    labelGold.TextStrokeTransparency = 0
+    labelGold.TextScaled = true
+    labelGold.Font = Enum.Font.SourceSansBold
+    labelGold.Parent = billboardGold
+
+    -- SelectionBox para la caja ESP
+    local selectionBoxGold = Instance.new("SelectionBox")
+    selectionBoxGold.Name = "GoldESPBox"
+    selectionBoxGold.Adornee = rockBase
+    selectionBoxGold.Parent = EspGoldFolder
+    selectionBoxGold.SurfaceTransparency = 0.95
+    selectionBoxGold.LineThickness = 0.04
+    selectionBoxGold.Color3 = Color3.fromRGB(255, 215, 0) -- Color dorado
+end
+
+local function ActivarEspGold()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            -- Crear ESP para cada depósito ya existente
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspGold(hijo)
+            end
+
+            -- Detectar nuevos depósitos
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspGold(nuevo)
+            end)
+            table.insert(EspGoldConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspGold()
+    EspGoldFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspGoldConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspGoldConnections)
+end
+
+
+
+local PlayersIron = game:GetService("Players")
+local CoreGuiIron = game:GetService("CoreGui")
+
+local LocalPlayerIron = PlayersIron.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Iron", "IronVein"}  -- Podés agregar más como "Gold", "Copper", etc.
+
+local EspIronFolder = Instance.new("Folder")
+EspIronFolder.Name = "ESP_Iron_GUI"
+EspIronFolder.Parent = CoreGuiIron
+
+local EspIronEnabled = false
+local EspIronConnections = {}
+
+local function CrearEspIron(partIron)
+    local rockBase = partIron:FindFirstChild("RockBase") or partIron:FindFirstChild("RockBaseVein") or partIron:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+    -- BillboardGui con texto
+    local billboardIron = Instance.new("BillboardGui")
+    billboardIron.Name = "IronESP"
+    billboardIron.Size = UDim2.new(0, 100, 0, 20)
+    billboardIron.Adornee = rockBase
+    billboardIron.AlwaysOnTop = true
+    billboardIron.StudsOffset = Vector3.new(0, 2, 0)
+    billboardIron.Parent = EspIronFolder
+
+    local labelIron = Instance.new("TextLabel")
+    labelIron.Size = UDim2.new(1, 0, 1, 0)
+    labelIron.BackgroundTransparency = 1
+    labelIron.Text = "Iron"
+    labelIron.TextColor3 = Color3.fromRGB(128, 128, 128) -- Gris para hierro
+    labelIron.TextStrokeColor3 = Color3.new(1, 1, 1) -- Contorno blanco
+    labelIron.TextStrokeTransparency = 0
+    labelIron.TextScaled = true
+    labelIron.Font = Enum.Font.SourceSansBold
+    labelIron.Parent = billboardIron
+
+    -- SelectionBox para la caja ESP
+    local selectionBoxIron = Instance.new("SelectionBox")
+    selectionBoxIron.Name = "IronESPBox"
+    selectionBoxIron.Adornee = rockBase
+    selectionBoxIron.Parent = EspIronFolder
+    selectionBoxIron.SurfaceTransparency = 0.95
+    selectionBoxIron.LineThickness = 0.04
+    selectionBoxIron.Color3 = Color3.fromRGB(128, 128, 128) -- Gris para hierro
+end
+
+local function ActivarEspIron()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            -- Crear ESP para cada depósito ya existente
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspIron(hijo)
+            end
+
+            -- Detectar nuevos depósitos
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspIron(nuevo)
+            end)
+            table.insert(EspIronConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspIron()
+    EspIronFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspIronConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspIronConnections)
+end
+
+
+
+local PlayersLimestone = game:GetService("Players")
+local CoreGuiLimestone = game:GetService("CoreGui")
+
+local LocalPlayerLimestone = PlayersLimestone.LocalPlayer
+local FolderLimestone = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits"):WaitForChild("Limestone")
+
+local EspLimestoneFolder = Instance.new("Folder")
+EspLimestoneFolder.Name = "ESP_Limestone_GUI"
+EspLimestoneFolder.Parent = CoreGuiLimestone
+
+local EspLimestoneEnabled = false
+local EspLimestoneConnections = {}
+
+local function CrearEspLimestone(partLimestone)
+    local rockBase = partLimestone:FindFirstChild("RockBase")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+-- BillboardGui con texto
+local billboardLimestone = Instance.new("BillboardGui")
+billboardLimestone.Name = "LimestoneESP"
+billboardLimestone.Size = UDim2.new(0, 100, 0, 20)
+billboardLimestone.Adornee = rockBase
+billboardLimestone.AlwaysOnTop = true
+billboardLimestone.StudsOffset = Vector3.new(0, 2, 0)
+billboardLimestone.Parent = EspLimestoneFolder
+
+local labelLimestone = Instance.new("TextLabel")
+labelLimestone.Size = UDim2.new(1, 0, 1, 0)
+labelLimestone.BackgroundTransparency = 1
+labelLimestone.Text = "Limestone"
+labelLimestone.TextColor3 = Color3.fromRGB(230, 216, 173) -- Beige claro
+labelLimestone.TextStrokeColor3 = Color3.new(1, 1, 1) -- Contorno blanco
+labelLimestone.TextStrokeTransparency = 0
+labelLimestone.TextScaled = true
+labelLimestone.Font = Enum.Font.SourceSansBold
+labelLimestone.Parent = billboardLimestone
+
+-- SelectionBox para la caja ESP
+local selectionBoxLimestone = Instance.new("SelectionBox")
+selectionBoxLimestone.Name = "LimestoneESPBox"
+selectionBoxLimestone.Adornee = rockBase
+selectionBoxLimestone.Parent = EspLimestoneFolder
+selectionBoxLimestone.SurfaceTransparency = 0.95
+selectionBoxLimestone.LineThickness = 0.04
+selectionBoxLimestone.Color3 = Color3.fromRGB(230, 216, 173) -- Mismo tono que el texto
+end
+
+local function ActivarEspLimestone()
+    for _, hijoLimestone in ipairs(FolderLimestone:GetChildren()) do
+        CrearEspLimestone(hijoLimestone)
+    end
+
+    table.insert(EspLimestoneConnections, FolderLimestone.ChildAdded:Connect(function(nuevoLimestone)
+        CrearEspLimestone(nuevoLimestone)
+    end))
+end
+
+local function DesactivarEspLimestone()
+    EspLimestoneFolder:ClearAllChildren()
+    for _, conexionLimestone in ipairs(EspLimestoneConnections) do
+        conexionLimestone:Disconnect()
+    end
+    table.clear(EspLimestoneConnections)
+end
+
+
+
+local PlayersQuartz = game:GetService("Players")
+local CoreGuiQuartz = game:GetService("CoreGui")
+
+local LocalPlayerQuartz = PlayersQuartz.LocalPlayer
+local FolderQuartz = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits"):WaitForChild("Quartz")
+
+local EspQuartzFolder = Instance.new("Folder")
+EspQuartzFolder.Name = "ESP_Quartz_GUI"
+EspQuartzFolder.Parent = CoreGuiQuartz
+
+local EspQuartzEnabled = false
+local EspQuartzConnections = {}
+
+local function CrearEspQuartz(partQuartz)
+    local rockBase = partQuartz:FindFirstChild("RockBase")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+-- BillboardGui con texto
+local billboardQuartz = Instance.new("BillboardGui")
+billboardQuartz.Name = "QuartzESP"
+billboardQuartz.Size = UDim2.new(0, 100, 0, 20)
+billboardQuartz.Adornee = rockBase
+billboardQuartz.AlwaysOnTop = true
+billboardQuartz.StudsOffset = Vector3.new(0, 2, 0)
+billboardQuartz.Parent = EspQuartzFolder
+
+local labelQuartz = Instance.new("TextLabel")
+labelQuartz.Size = UDim2.new(1, 0, 1, 0)
+labelQuartz.BackgroundTransparency = 1
+labelQuartz.Text = "Quartz" -- Corrección ortográfica
+labelQuartz.TextColor3 = Color3.fromRGB(255, 224, 234) -- Blanco rosado
+labelQuartz.TextStrokeColor3 = Color3.new(0, 0, 0) -- Contorno blanco
+labelQuartz.TextStrokeTransparency = 0
+labelQuartz.TextScaled = true
+labelQuartz.Font = Enum.Font.SourceSansBold
+labelQuartz.Parent = billboardQuartz
+
+-- SelectionBox para la caja ESP
+local selectionBoxQuartz = Instance.new("SelectionBox")
+selectionBoxQuartz.Name = "QuartzESPBox"
+selectionBoxQuartz.Adornee = rockBase
+selectionBoxQuartz.Parent = EspQuartzFolder
+selectionBoxQuartz.SurfaceTransparency = 0.95
+selectionBoxQuartz.LineThickness = 0.04
+selectionBoxQuartz.Color3 = Color3.fromRGB(255, 224, 234) -- Igual que el texto
+end
+
+local function ActivarEspQuartz()
+    for _, hijoQuartz in ipairs(FolderQuartz:GetChildren()) do
+        CrearEspQuartz(hijoQuartz)
+    end
+
+    table.insert(EspQuartzConnections, FolderQuartz.ChildAdded:Connect(function(nuevoQuartz)
+        CrearEspQuartz(nuevoQuartz)
+    end))
+end
+
+local function DesactivarEspQuartz()
+    EspQuartzFolder:ClearAllChildren()
+    for _, conexionQuartz in ipairs(EspQuartzConnections) do
+        conexionQuartz:Disconnect()
+    end
+    table.clear(EspQuartzConnections)
+end
+
+
+
+
+local PlayersSilver = game:GetService("Players")
+local CoreGuiSilver = game:GetService("CoreGui")
+
+local LocalPlayerSilver = PlayersSilver.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Silver", "SilverVein"}  -- Podés agregar más como "Gold", "Copper", etc.
+
+local EspSilverFolder = Instance.new("Folder")
+EspSilverFolder.Name = "ESP_Silver_GUI"
+EspSilverFolder.Parent = CoreGuiSilver
+
+local EspSilverEnabled = false
+local EspSilverConnections = {}
+
+local function CrearEspSilver(partSilver)
+    local rockBase = partSilver:FindFirstChild("RockBase") or partSilver:FindFirstChild("RockBaseVein") or partSilver:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+    -- BillboardGui con texto
+    local billboardSilver = Instance.new("BillboardGui")
+    billboardSilver.Name = "SilverESP"
+    billboardSilver.Size = UDim2.new(0, 100, 0, 20)
+    billboardSilver.Adornee = rockBase
+    billboardSilver.AlwaysOnTop = true
+    billboardSilver.StudsOffset = Vector3.new(0, 2, 0)
+    billboardSilver.Parent = EspSilverFolder
+
+    local labelSilver = Instance.new("TextLabel")
+    labelSilver.Size = UDim2.new(1, 0, 1, 0)
+    labelSilver.BackgroundTransparency = 1
+    labelSilver.Text = "Silver"
+    labelSilver.TextColor3 = Color3.fromRGB(192, 192, 192) -- Color plata
+    labelSilver.TextStrokeColor3 = Color3.new(1, 1, 1) -- Contorno blanco
+    labelSilver.TextStrokeTransparency = 0
+    labelSilver.TextScaled = true
+    labelSilver.Font = Enum.Font.SourceSansBold
+    labelSilver.Parent = billboardSilver
+
+    -- SelectionBox para la caja ESP
+    local selectionBoxSilver = Instance.new("SelectionBox")
+    selectionBoxSilver.Name = "SilverESPBox"
+    selectionBoxSilver.Adornee = rockBase
+    selectionBoxSilver.Parent = EspSilverFolder
+    selectionBoxSilver.SurfaceTransparency = 0.95
+    selectionBoxSilver.LineThickness = 0.04
+    selectionBoxSilver.Color3 = Color3.fromRGB(192, 192, 192) -- Color plata
+end
+
+local function ActivarEspSilver()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            -- Crear ESP para cada depósito ya existente
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspSilver(hijo)
+            end
+
+            -- Detectar nuevos depósitos
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspSilver(nuevo)
+            end)
+            table.insert(EspSilverConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspSilver()
+    EspSilverFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspSilverConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspSilverConnections)
+end
+
+
+
+
+local PlayersZinc = game:GetService("Players")
+local CoreGuiZinc = game:GetService("CoreGui")
+
+local LocalPlayerZinc = PlayersZinc.LocalPlayer
+local OreDeposits = Services.Workspace:WaitForChild("WORKSPACE_Interactables"):WaitForChild("Mining"):WaitForChild("OreDeposits")
+
+-- Acá ponés los nombres de las carpetas que querés incluir en el ESP
+local CarpetasESP = {"Zinc", "ZincVein"}
+
+local EspZincFolder = Instance.new("Folder")
+EspZincFolder.Name = "ESP_Zinc_GUI"
+EspZincFolder.Parent = CoreGuiZinc
+
+local EspZincEnabled = false
+local EspZincConnections = {}
+
+local function CrearEspZinc(partZinc)
+    local rockBase = partZinc:FindFirstChild("RockBase") or partZinc:FindFirstChild("RockBaseVein") or partZinc:FindFirstChild("RockBaseL")
+    if not rockBase or not rockBase:IsA("BasePart") then return end
+
+    -- BillboardGui con texto
+    local billboardZinc = Instance.new("BillboardGui")
+    billboardZinc.Name = "ZincESP"
+    billboardZinc.Size = UDim2.new(0, 100, 0, 20)
+    billboardZinc.Adornee = rockBase
+    billboardZinc.AlwaysOnTop = true
+    billboardZinc.StudsOffset = Vector3.new(0, 2, 0)
+    billboardZinc.Parent = EspZincFolder
+
+    local labelZinc = Instance.new("TextLabel")
+    labelZinc.Size = UDim2.new(1, 0, 1, 0)
+    labelZinc.BackgroundTransparency = 1
+    labelZinc.Text = "Zinc"
+    labelZinc.TextColor3 = Color3.fromRGB(200, 200, 255) -- Color azulado metálico
+    labelZinc.TextStrokeColor3 = Color3.new(1, 1, 1)
+    labelZinc.TextStrokeTransparency = 0
+    labelZinc.TextScaled = true
+    labelZinc.Font = Enum.Font.SourceSansBold
+    labelZinc.Parent = billboardZinc
+
+    -- SelectionBox para la caja ESP
+    local selectionBoxZinc = Instance.new("SelectionBox")
+    selectionBoxZinc.Name = "ZincESPBox"
+    selectionBoxZinc.Adornee = rockBase
+    selectionBoxZinc.Parent = EspZincFolder
+    selectionBoxZinc.SurfaceTransparency = 0.95
+    selectionBoxZinc.LineThickness = 0.04
+    selectionBoxZinc.Color3 = Color3.fromRGB(200, 200, 255)
+end
+
+local function ActivarEspZinc()
+    for _, carpeta in ipairs(CarpetasESP) do
+        local folder = OreDeposits:FindFirstChild(carpeta)
+        if folder then
+            for _, hijo in ipairs(folder:GetChildren()) do
+                CrearEspZinc(hijo)
+            end
+
+            local conn = folder.ChildAdded:Connect(function(nuevo)
+                CrearEspZinc(nuevo)
+            end)
+            table.insert(EspZincConnections, conn)
+        end
+    end
+end
+
+local function DesactivarEspZinc()
+    EspZincFolder:ClearAllChildren()
+    for _, conexion in ipairs(EspZincConnections) do
+        conexion:Disconnect()
+    end
+    table.clear(EspZincConnections)
+end
+
+
+
+local toggle = sector.element('Toggle', 'ESP Bear', false, function(v)
+   bearEspEnabled = not bearEspEnabled
+    if bearEspEnabled then
+        monitorBearEntities()
+    else
+        removeBearEsp()
+    end
+end)
+
+local toggle1 = sector.element('Toggle', 'Esp Deer', false, function(v)
+   deerEspEnabled = not deerEspEnabled
+    if deerEspEnabled then
+        monitorDeerEntities() -- Comienza a monitorear los "Deer"
+    else
+        removeDeerEsp() -- Elimina el ESP de todos los "Deer"
+    end
+end)
+
+local toggle2 = sector.element('Toggle', 'ESP Bison', false, function(v)
+   bisonEspEnabled = not bisonEspEnabled
+    if bisonEspEnabled then
+        monitorBisonEntities() -- Comienza a monitorear los "Bison"
+    else
+        removeBisonEsp() -- Elimina el ESP de todos los "Bison"
+    end
+end)
+
+local toggle3 = sector.element('Toggle', 'ESP Crocodile', false, function(v)
+   cocodrileEspEnabled = not cocodrileEspEnabled
+    if cocodrileEspEnabled then
+        monitorCocodrileEntities() -- Comienza a monitorear los "Cocodrile"
+    else
+        removeCocodrileEsp() -- Elimina el ESP de todos los "Cocodrile"
+    end
+end)
+
+
+local toggle4 = sector1.element('Toggle', 'ESP Coal', false, function(v)
+   EspCoalEnabled = not EspCoalEnabled
+    if EspCoalEnabled then
+        ActivarEspCoal()
+    else
+        DesactivarEspCoal()
+    end
+end)
+
+local toggle5 = sector1.element('Toggle', 'Esp Copper', false, function(v)
+   EspCopperEnabled = not EspCopperEnabled
+    if EspCopperEnabled then
+        ActivarEspCopper()
+    else
+        DesactivarEspCopper()
+    end
+end)
+
+local toggle6 = sector1.element('Toggle', 'ESP Zinc', false, function(v)
+   EspZincEnabled = not EspZincEnabled
+    if EspZincEnabled then
+        ActivarEspZinc()
+    else
+        DesactivarEspZinc()
+    end
+end)
+
+local toggle7 = sector1.element('Toggle', 'ESP Iron', false, function(v)
+   EspIronEnabled = not EspIronEnabled
+    if EspIronEnabled then
+        ActivarEspIron()
+    else
+        DesactivarEspIron()
+    end
+end)
+
+local toggle7 = sector1.element('Toggle', 'ESP Silver', false, function(v)
+   EspSilverEnabled = not EspSilverEnabled
+    if EspSilverEnabled then
+        ActivarEspSilver()
+    else
+        DesactivarEspSilver()
+    end
+end)
+
+local toggle8 = sector1.element('Toggle', 'ESP Gold', false, function(v)
+   EspGoldEnabled = not EspGoldEnabled
+    if EspGoldEnabled then
+        ActivarEspGold()
+    else
+        DesactivarEspGold()
+    end
+end)
+
+local toggle9 = sector1.element('Toggle', 'ESP Quartz', false, function(v)
+   EspQuartzEnabled = not EspQuartzEnabled
+    if EspQuartzEnabled then
+        ActivarEspQuartz()
+    else
+        DesactivarEspQuartz()
+    end
+end)
+
+local toggle10 = sector1.element('Toggle', 'ESP Limestone', false, function(v)
+    EspLimestoneEnabled = not EspLimestoneEnabled
+    if EspLimestoneEnabled then
+        ActivarEspLimestone()
+    else
+        DesactivarEspLimestone()
+    end
+end)
+
+local toggle11 = sector2.element('Toggle', 'ESP Players', false, function(v)
+   playerEspEnabled = not playerEspEnabled
+    if playerEspEnabled then
+        monitorPlayerEntities() -- Comienza a monitorear jugadores
+    else
+        removePlayerEsp() -- Elimina el ESP de todos los jugadores
+    end
+end)
+
+local toggle12 = sector2.element('Toggle', 'ESP ThunderStruck Trees', false, function(v)
+	espEnabled = not espEnabled
+    updateAllTrees(espEnabled)
+end)
+
+-- Funciones del Aimbot
+local function blockMouseInput(block)
+    if block then
+        Services.UserInput.MouseBehavior = Enum.MouseBehavior.LockCenter
+        Services.UserInput.MouseIconEnabled = false
+    else
+        Services.UserInput.MouseBehavior = Enum.MouseBehavior.Default
+        Services.UserInput.MouseIconEnabled = true
+    end
+end
+
+local function getClosestAnimalInFOV()
+    local closestTarget = nil
+    local closestAngle = math.huge
+    local animalsFolder = Services.Workspace:FindFirstChild("WORKSPACE_Entities") and Services.Workspace.WORKSPACE_Entities:FindFirstChild("Animals")
+    if not animalsFolder then return nil end
+
+    for _, animal in pairs(animalsFolder:GetChildren()) do
+        if animal.Name == "Bison" or animal.Name == "Bear" or animal.Name == "Deer" or animal.Name == "Gator" then
+            local head = animal:FindFirstChild("Head")
+            if head and head:IsA("BasePart") then
+                local directionToHead = (head.Position - Services.Camera.CFrame.Position).Unit
+                local cameraForward = Services.Camera.CFrame.LookVector
+                local dot = cameraForward:Dot(directionToHead)
+                local angle = math.acos(math.clamp(dot, -1, 1))
+
+                if angle <= State.fovAngle and angle < closestAngle then
+                    closestAngle = angle
+                    closestTarget = head
+                end
+            end
+        end
+    end
+
+    return closestTarget
+end
+
+local function faceTarget(target)
+    local character = Services.LocalPlayer.Character
+    if not character then return end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local direction = (target.Position - root.Position).Unit
+    root.CFrame = CFrame.new(root.Position, root.Position + Vector3.new(direction.X, 0, direction.Z))
+
+    for _, part in pairs(character:GetChildren()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.CFrame = CFrame.new(part.Position, target.Position)
+        end
+    end
+end
+
+local function activateAimbot()
+    State.aimbotEnabled = true
+
+    table.insert(State.connections, Services.UserInput.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton2 and not State.aiming then
+            State.aiming = true
+            Services.Camera.CameraType = Enum.CameraType.Attach
+            State.currentTarget = getClosestAnimalInFOV()
+            blockMouseInput(true)
+        end
+    end))
+
+    table.insert(State.connections, Services.UserInput.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            State.aiming = false
+            State.currentTarget = nil
+            Services.Camera.CameraType = Enum.CameraType.Custom
+            blockMouseInput(false)
+        end
+    end))
+
+    table.insert(State.connections, Services.RunService.RenderStepped:Connect(function()
+        if State.aiming and State.aimbotEnabled and State.currentTarget then
+            if State.currentTarget.Parent and State.currentTarget:IsDescendantOf(Services.Workspace) then
+                Services.Camera.CFrame = CFrame.new(Services.Camera.CFrame.Position, State.currentTarget.Position)
+                faceTarget(State.currentTarget)
+            else
+                State.currentTarget = nil
+            end
+        end
+    end))
+end
+
+local function deactivateAimbot()
+    Services.Camera.CameraType = Enum.CameraType.Custom
+    State.aimbotEnabled = false
+    State.aiming = false
+    State.currentTarget = nil
+    blockMouseInput(false)
+
+    for _, conn in pairs(State.connections) do
+        if conn and conn.Disconnect then
+            conn:Disconnect()
+        end
+    end
+    table.clear(State.connections)
+end
+
+-- Agregar el toggle del aimbot en la sección de Combat
+local sector5 = section1.new_sector('Aimbot', 'Left')
+local toggleAimbot = sector5.element('Toggle', 'Aimbot Animals', false, function(v)
+    if v then
+        activateAimbot()
+    else
+        deactivateAimbot()
+    end
+end)
+
+-- Función para crear Chams
+local function createChams(model, color)
+    if not model or ChamsState.highlights[model] then return end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = color
+    highlight.OutlineColor = Color3.fromRGB(0, 0, 0)
+    highlight.FillTransparency = 0.2
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = model
+    highlight.Parent = model
+    ChamsState.highlights[model] = highlight
+end
+
+-- Función para remover Chams
+local function removeChams(model)
+    if ChamsState.highlights[model] then
+        ChamsState.highlights[model]:Destroy()
+        ChamsState.highlights[model] = nil
+    end
+end
+
+-- Función para actualizar Chams
+local function updateChams()
+    -- Limpiar Chams existentes
+    for model, highlight in pairs(ChamsState.highlights) do
+        if not model or not model.Parent then
+            highlight:Destroy()
+            ChamsState.highlights[model] = nil
+        end
+    end
+    
+    -- Actualizar Chams para animales
+    if ChamsState.enabled.bear or ChamsState.enabled.deer or ChamsState.enabled.bison or ChamsState.enabled.crocodile then
+        for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Animals:GetChildren()) do
+            if model:IsA("Model") then
+                if model.Name == "Bear" and ChamsState.enabled.bear then
+                    createChams(model, Color3.fromRGB(139, 69, 19)) -- Marrón
+                elseif model.Name == "Deer" and ChamsState.enabled.deer then
+                    createChams(model, Color3.fromRGB(34, 139, 34)) -- Verde
+                elseif model.Name == "Bison" and ChamsState.enabled.bison then
+                    createChams(model, Color3.fromRGB(255, 0, 0)) -- Rojo
+                elseif model.Name == "Gator" and ChamsState.enabled.crocodile then
+                    createChams(model, Color3.fromRGB(0, 128, 0)) -- Verde oscuro
+                end
+            end
+        end
+    end
+    
+    -- Actualizar Chams para jugadores
+    if ChamsState.enabled.players then
+        for _, model in ipairs(Services.Workspace.WORKSPACE_Entities.Players:GetChildren()) do
+            if model:IsA("Model") and model.Name ~= Services.LocalPlayer.Name then
+                local player = game.Players:FindFirstChild(model.Name)
+                if player then
+                    local color = player.Team and player.Team.Name == "Citizens" 
+                        and Color3.fromRGB(0, 255, 0) -- Verde para Citizens
+                        or Color3.fromRGB(255, 0, 0) -- Rojo para Outlaws
+                    createChams(model, color)
+                end
+            end
+        end
+    end
+end
+
+-- Conectar la actualización de Chams al Heartbeat
+Services.RunService.Heartbeat:Connect(updateChams)
