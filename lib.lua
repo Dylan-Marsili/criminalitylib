@@ -512,7 +512,7 @@ end
                         return value
                     end
 
-                    if type == "Toggle" then
+                    elif type == "Textlabel" then
                         Border.Size = Border.Size + UDim2.new(0, 0, 0, 18)
 
                         value = {Toggle = default and default.Toggle or false}
@@ -525,12 +525,14 @@ end
                             Size = UDim2.new(1, 0, 0, 18),
                             Text = "",
                         }, Container)
+                        
+                        
 
                         function element:set_visible(bool)
                             if bool then
                                 if ToggleButton.Visible then return end
                                 Border.Size = Border.Size + UDim2.new(0, 0, 0, 18)
-                                ToggleButton.Visible = true
+                                ToggleButton.Visible = false
                             else
                                 if not ToggleButton.Visible then return end
                                 Border.Size = Border.Size + UDim2.new(0, 0, 0, -18)
@@ -1079,12 +1081,19 @@ end
                             return color
                         end
                     
-                    elif type == "Textlabel" then
+                    if type == "Toggle" then
                         Border.Size = Border.Size + UDim2.new(0, 0, 0, 18)
 
                         value = {Toggle = default and default.Toggle or false}
 
-                        local ToggleButton = ""
+                        local ToggleButton = library:create("TextButton", {
+                            Name = "Toggle",
+                            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                            BackgroundTransparency = 1,
+                            Position = UDim2.new(0, 0, 0, 0),
+                            Size = UDim2.new(1, 0, 0, 18),
+                            Text = "",
+                        }, Container)
 
                         function element:set_visible(bool)
                             if bool then
