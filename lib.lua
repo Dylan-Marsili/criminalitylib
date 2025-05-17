@@ -1078,6 +1078,566 @@ end
 
                             return color
                         end
+                    
+                    elif type == "Textlabel" then
+                        Border.Size = Border.Size + UDim2.new(0, 0, 0, 18)
+
+                        value = {Toggle = default and default.Toggle or false}
+
+
+                        function element:set_visible(bool)
+                            if bool then
+                                if ToggleButton.Visible then return end
+                                Border.Size = Border.Size + UDim2.new(0, 0, 0, 18)
+                                ToggleButton.Visible = true
+                            else
+                                if not ToggleButton.Visible then return end
+                                Border.Size = Border.Size + UDim2.new(0, 0, 0, -18)
+                                ToggleButton.Visible = false
+                            end
+                        end
+
+                        local ToggleFrame = library:create("Frame", {
+                            AnchorPoint = Vector2.new(0, 0.5),
+                            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+                            BorderColor3 = Color3.fromRGB(0, 0, 0),
+                            Position = UDim2.new(0, 9, 0.5, 0),
+                            Size = UDim2.new(0, 9, 0, 9),
+                        }, ToggleButton)
+
+                        local ToggleText = library:create("TextLabel", {
+                            BackgroundTransparency = 1,
+                            Position = UDim2.new(0, 27, 0, 5),
+                            Size = UDim2.new(0, 200, 0, 9),
+                            Font = Enum.Font.Ubuntu,
+                            Text = text,
+                            TextColor3 = Color3.fromRGB(150, 150, 150),
+                            TextSize = 14,
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                        }, ToggleButton)
+
+                        local mouse_in = false
+                        function element:set_value(new_value, cb)
+                            value = new_value and new_value or value
+                            menu.values[tab.tab_num][section_name][sector_name][flag] = value
+
+                            if value.Toggle then
+                                library:tween(ToggleFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(84, 101, 255)})
+                                library:tween(ToggleText, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(255, 255, 255)})
+                            else
+                                library:tween(ToggleFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)})
+                                if not mouse_in then
+                                    library:tween(ToggleText, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                                end
+                            end
+
+                            if cb == nil or not cb then
+                                do_callback()
+                            end
+                        end
+                        ToggleButton.MouseEnter:Connect(function()
+                            mouse_in = true
+                            if value.Toggle then return end
+                            library:tween(ToggleText, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(255, 255, 255)})
+                        end)
+                        ToggleButton.MouseLeave:Connect(function()
+                            mouse_in = false
+                            if value.Toggle then return end
+                            library:tween(ToggleText, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                        end)
+                        ToggleButton.MouseButton1Down:Connect(function()
+                            element:set_value({Toggle = not value.Toggle})
+                        end)
+                        element:set_value(value, true)
+
+                        local has_extra = false
+                        function element:add_keybind(key_default, key_callback)
+                            local keybind = {}
+
+                            if has_extra then return end
+                            has_extra = true
+                            local extra_flag = "$"..flag
+
+                            local extra_value = {Key, Type = "Always", Active = true}
+                            key_callback = key_callback or function() end
+
+                            local Keybind = library:create("TextButton", {
+                                Name = "Keybind",
+                                AnchorPoint = Vector2.new(1, 0),
+                                BackgroundTransparency = 1,
+                                Position = UDim2.new(0, 265, 0, 0),
+                                Size = UDim2.new(0, 56, 0, 20),
+                                Font = Enum.Font.Ubuntu,
+                                Text = "[ NONE ]",
+                                TextColor3 = Color3.fromRGB(150, 150, 150),
+                                TextSize = 14,
+                                TextXAlignment = Enum.TextXAlignment.Right,
+                            }, ToggleButton)
+
+                            local KeybindFrame = library:create("Frame", {
+                                Name = "KeybindFrame",
+                                BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+                                BorderColor3 = Color3.fromRGB(30, 30, 30),
+                                Position = UDim2.new(1, 5, 0, 3),
+                                Size = UDim2.new(0, 55, 0, 75),
+                                Visible = false,
+                                ZIndex = 2,
+                            }, Keybind)
+
+                            local UIListLayout = library:create("UIListLayout", {
+                                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                                SortOrder = Enum.SortOrder.LayoutOrder,
+                            }, KeybindFrame)
+
+                            local keybind_in = false
+                            local keybind_in2 = false
+                            Keybind.MouseEnter:Connect(function()
+                                keybind_in = true
+                                library:tween(Keybind, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(255, 255, 255)})
+                            end)
+                            Keybind.MouseLeave:Connect(function()
+                                keybind_in = false
+                                library:tween(Keybind, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                            end)
+                            KeybindFrame.MouseEnter:Connect(function()
+                                keybind_in2 = true
+                                library:tween(KeybindFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BorderColor3 = Color3.fromRGB(84, 101, 255)})
+                            end)
+                            KeybindFrame.MouseLeave:Connect(function()
+                                keybind_in2 = false
+                                library:tween(KeybindFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BorderColor3 = Color3.fromRGB(30, 30, 30)})
+                            end)
+                            uis.InputBegan:Connect(function(input)
+								if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 and not binding then
+									if KeybindFrame.Visible == true and not keybind_in and not keybind_in2 then
+										KeybindFrame.Visible = false
+									end
+								end
+                            end)
+
+                            local Always = library:create("TextButton", {
+                                Name = "Always",
+                                BackgroundTransparency = 1,
+                                Size = UDim2.new(1, 0, 0, 25),
+                                Font = Enum.Font.Ubuntu,
+                                Text = "Always",
+                                TextColor3 = Color3.fromRGB(84, 101, 255),
+                                TextSize = 14,
+                                ZIndex = 2,
+                            }, KeybindFrame)
+
+                            local Hold = library:create("TextButton", {
+                                Name = "Hold",
+                                BackgroundTransparency = 1,
+                                Size = UDim2.new(1, 0, 0, 25),
+                                Font = Enum.Font.Ubuntu,
+                                Text = "Hold",
+                                TextColor3 = Color3.fromRGB(150, 150, 150),
+                                TextSize = 14,
+                                ZIndex = 2,
+                            }, KeybindFrame)
+
+                            local Toggle = library:create("TextButton", {
+                                Name = "Toggle",
+                                BackgroundTransparency = 1,
+                                Size = UDim2.new(1, 0, 0, 25),
+                                Font = Enum.Font.Ubuntu,
+                                Text = "Toggle",
+                                TextColor3 = Color3.fromRGB(150, 150, 150),
+                                TextSize = 14,
+                                ZIndex = 2,
+                            }, KeybindFrame)
+                            for _,TypeButton in next, KeybindFrame:GetChildren() do
+                                if TypeButton:IsA("UIListLayout") then continue end
+
+                                TypeButton.MouseEnter:Connect(function()
+                                    if extra_value.Type ~= TypeButton.Text then
+                                        library:tween(TypeButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(255, 255, 255)})
+                                    end
+                                end)
+                                TypeButton.MouseLeave:Connect(function()
+                                    if extra_value.Type ~= TypeButton.Text then
+                                        library:tween(TypeButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                                    end
+                                end)
+                                TypeButton.MouseButton1Down:Connect(function()
+                                    KeybindFrame.Visible = false
+
+                                    extra_value.Type = TypeButton.Text
+                                    if extra_value.Type == "Always" then
+                                        extra_value.Active = true
+                                    else
+                                        extra_value.Active = true
+                                    end
+                                    key_callback(extra_value)
+                                    menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+
+                                    for _,TypeButton2 in next, KeybindFrame:GetChildren() do
+                                        if TypeButton2:IsA("UIListLayout") then continue end
+                                        library:tween(TypeButton2, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                                    end
+                                    library:tween(TypeButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(84, 101, 255)})
+                                end)
+                            end
+
+                            local is_binding = false
+                            uis.InputBegan:Connect(function(input)
+                                if is_binding then
+									is_binding = false
+
+                                    local new_value = input.KeyCode.Name ~= "Unknown" and input.KeyCode.Name or input.UserInputType.Name
+                                    Keybind.Text = "[ "..new_value:upper().." ]"
+									Keybind.Size = UDim2.new(0, library:get_text_size(Keybind.Text, 14, Enum.Font.Ubuntu, Vector2.new(700, 20)).X + 3, 0, 20)
+									extra_value.Key = new_value
+
+									if new_value == "Backspace" then
+										Keybind.Text = "[ NONE ]"
+										Keybind.Size = UDim2.new(0, library:get_text_size(Keybind.Text, 14, Enum.Font.Ubuntu, Vector2.new(700, 20)).X + 3, 0, 20)
+										extra_value.Key = nil
+									end
+
+                                    key_callback(extra_value)
+                                    menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                                elseif extra_value.Key ~= nil then
+                                    local key = input.KeyCode.Name ~= "Unknown" and input.KeyCode.Name or input.UserInputType.Name
+                                    if key == extra_value.Key then
+                                        if extra_value.Type == "Toggle" then
+                                            extra_value.Active = not extra_value.Active
+                                        elseif extra_value.Type == "Hold" then
+                                            extra_value.Active = true
+                                        end
+                                        key_callback(extra_value)
+                                        menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                                    end
+                                end
+                            end)
+                            uis.InputEnded:Connect(function(input)
+                                if extra_value.Key ~= nil and not is_binding then
+                                    local key = input.KeyCode.Name ~= "Unknown" and input.KeyCode.Name or input.UserInputType.Name
+                                    if key == extra_value.Key then
+                                        if extra_value.Type == "Hold" then
+                                            extra_value.Active = false
+                                            key_callback(extra_value)
+                                            menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                                        end
+                                    end
+                                end
+							end)
+
+                            Keybind.MouseButton1Down:Connect(function()
+								if not is_binding then
+									wait()
+									is_binding = true
+									Keybind.Text = "[ ... ]"
+									Keybind.Size = UDim2.new(0, library:get_text_size("[ ... ]", 14, Enum.Font.Ubuntu, Vector2.new(700, 20)).X + 3,0, 20)
+								end
+							end)
+
+                            Keybind.MouseButton2Down:Connect(function()
+								if not is_binding then
+									KeybindFrame.Visible = not KeybindFrame.Visible
+								end
+							end)
+
+                            function keybind:set_value(new_value, cb)
+                                extra_value = new_value and new_value or extra_value
+                                menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+    
+                                for _,TypeButton2 in next, KeybindFrame:GetChildren() do
+                                    if TypeButton2:IsA("UIListLayout") then continue end
+                                    if TypeButton2.Name ~= extra_value.Type then
+                                        library:tween(TypeButton2, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(150, 150, 150)})
+                                    else
+                                        library:tween(TypeButton2, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {TextColor3 = Color3.fromRGB(84, 101, 255)})
+                                    end
+                                end
+
+                                local key = extra_value.Key ~= nil and extra_value.Key or "NONE"
+                                Keybind.Text = "[ "..key:upper().." ]"
+                                Keybind.Size = UDim2.new(0, library:get_text_size(Keybind.Text, 14, Enum.Font.Ubuntu, Vector2.new(700, 20)).X + 3, 0, 20)
+    
+                                if cb == nil or not cb then
+                                    key_callback(extra_value)
+                                end
+                            end
+                            keybind:set_value(new_value, true)
+
+                            menu.on_load_cfg:Connect(function()
+                                keybind:set_value(menu.values[tab.tab_num][section_name][sector_name][extra_flag])
+                            end)
+
+                            return keybind
+                        end
+                        function element:add_color(color_default, has_transparency, color_callback)
+                            if has_extra then return end
+                            has_extra = true
+
+                            local color = {}
+
+                            local extra_flag = "$"..flag
+
+                            local extra_value = {Color}
+                            color_callback = color_callback or function() end
+
+                            local ColorButton = library:create("TextButton", {
+                                Name = "ColorButton",
+                                AnchorPoint = Vector2.new(1, 0.5),
+                                BackgroundColor3 = Color3.fromRGB(255, 28, 28),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Position = UDim2.new(0, 265, 0.5, 0),
+                                Size = UDim2.new(0, 35, 0, 11),
+                                AutoButtonColor = false,
+                                Font = Enum.Font.Ubuntu,
+                                Text = "",
+                                TextXAlignment = Enum.TextXAlignment.Right,
+                            }, ToggleButton)
+
+                            local ColorFrame = library:create("Frame", {
+                                Name = "ColorFrame",
+                                Parent = ColorButton,
+                                BackgroundColor3 = Color3.fromRGB(10, 10, 10),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Position = UDim2.new(1, 5, 0, 0),
+                                Size = UDim2.new(0, 200, 0, 170),
+                                Visible = false,
+                                ZIndex = 2,
+                            }, ColorButton)
+
+                            local ColorPicker = library:create("ImageButton", {
+                                Name = "ColorPicker",
+                                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Position = UDim2.new(0, 40, 0, 10),
+                                Size = UDim2.new(0, 150, 0, 150),
+                                AutoButtonColor = false,
+                                Image = "rbxassetid://4155801252",
+                                ImageColor3 = Color3.fromRGB(255, 0, 4),
+                                ZIndex = 2,
+                            }, ColorFrame)
+
+                            local ColorPick = library:create("Frame", {
+                                Name = "ColorPick",
+                                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Size = UDim2.new(0, 1, 0, 1),
+                                ZIndex = 2,
+                            }, ColorPicker)
+
+                            local HuePicker = library:create("TextButton", {
+                                Name = "HuePicker",
+                                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Position = UDim2.new(0, 10, 0, 10),
+                                Size = UDim2.new(0, 20, 0, 150),
+                                ZIndex = 2,
+                                AutoButtonColor = false,
+                                Text = "",
+                            }, ColorFrame)
+
+                            local UIGradient = library:create("UIGradient", {
+                                Rotation = 90,
+                                Color = ColorSequence.new {
+                                    ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)),
+                                    ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 0, 255)),
+                                    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 0, 255)),
+                                    ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)),
+                                    ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 255, 0)),
+                                    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 255, 0)),
+                                    ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0))
+                                }
+                            }, HuePicker)
+
+                            local HuePick = library:create("ImageButton", {
+                                Name = "HuePick",
+                                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                Size = UDim2.new(1, 0, 0, 1),
+                                ZIndex = 2,
+                            }, HuePicker)
+
+                            local in_color = false
+                            local in_color2 = false
+                            ColorButton.MouseButton1Down:Connect(function()
+                                ColorFrame.Visible = not ColorFrame.Visible
+                            end)
+                            ColorFrame.MouseEnter:Connect(function()
+                                in_color = true
+                                library:tween(ColorFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BorderColor3 = Color3.fromRGB(84, 101, 255)})
+                            end)
+                            ColorFrame.MouseLeave:Connect(function()
+                                in_color = false
+                                library:tween(ColorFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BorderColor3 = Color3.fromRGB(0, 0, 0)})
+                            end)
+                            ColorButton.MouseEnter:Connect(function()
+                                in_color2 = true
+                            end)
+                            ColorButton.MouseLeave:Connect(function()
+                                in_color2 = false
+                            end)
+                            uis.InputBegan:Connect(function(input)
+                                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.MouseButton2 then
+                                    if ColorFrame.Visible == true and not in_color and not in_color2 then
+                                        ColorFrame.Visible = false
+                                    end
+                                end
+                            end)
+
+                            local TransparencyColor
+                            local TransparencyPick
+                            if has_transparency then
+                                ColorFrame.Size = UDim2.new(0, 200, 0, 200)
+
+                                local TransparencyPicker = library:create("ImageButton", {
+                                    Name = "TransparencyPicker",
+                                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                    BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                    Position = UDim2.new(0, 10, 0, 170),
+                                    Size = UDim2.new(0, 180, 0, 20),
+                                    Image = "rbxassetid://3887014957",
+                                    ScaleType = Enum.ScaleType.Tile,
+                                    TileSize = UDim2.new(0, 10, 0, 10),
+                                    ZIndex = 2,
+                                }, ColorFrame)
+
+                                TransparencyColor = library:create("ImageLabel", {
+                                    BackgroundTransparency = 1,
+                                    Size = UDim2.new(1, 0, 1, 0),
+                                    Image = "rbxassetid://3887017050",
+                                    ZIndex = 2,
+                                }, TransparencyPicker)
+
+                                TransparencyPick = library:create("Frame", {
+                                    Name = "TransparencyPick",
+                                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                                    BorderColor3 = Color3.fromRGB(0, 0, 0),
+                                    Size = UDim2.new(0, 1, 1, 0),
+                                    ZIndex = 2,
+                                }, TransparencyPicker)
+
+                                extra_value.Transparency = 0
+
+                                function color.update_transp()
+                                    local x = math.clamp(mouse.X - TransparencyPicker.AbsolutePosition.X, 0, 180)
+                                    TransparencyPick.Position = UDim2.new(0, x, 0, 0)
+                                    local transparency = x/180
+                                    extra_value.Transparency = transparency
+
+                                    print(transparency)
+
+                                    color_callback(extra_value)
+                                    menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                                end
+                                TransparencyPicker.MouseButton1Down:Connect(function()
+                                    color.update_transp()
+                                    local moveconnection = mouse.Move:Connect(function()
+                                        color.update_transp()
+                                    end)
+                                    releaseconnection = uis.InputEnded:Connect(function(Mouse)
+                                        if Mouse.UserInputType == Enum.UserInputType.MouseButton1 then
+                                            color.update_transp()
+                                            moveconnection:Disconnect()
+                                            releaseconnection:Disconnect()
+                                        end
+                                    end)
+                                end)
+                            end
+
+                            color.h = (math.clamp(HuePick.AbsolutePosition.Y-HuePicker.AbsolutePosition.Y, 0, HuePicker.AbsoluteSize.Y)/HuePicker.AbsoluteSize.Y)
+                            color.s = 1-(math.clamp(ColorPick.AbsolutePosition.X-ColorPick.AbsolutePosition.X, 0, ColorPick.AbsoluteSize.X)/ColorPick.AbsoluteSize.X)
+                            color.v = 1-(math.clamp(ColorPick.AbsolutePosition.Y-ColorPick.AbsolutePosition.Y, 0, ColorPick.AbsoluteSize.Y)/ColorPick.AbsoluteSize.Y)
+
+                            extra_value.Color = Color3.fromHSV(color.h, color.s, color.v)
+                            menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+
+                            function color.update_color()
+                                local ColorX = (math.clamp(mouse.X - ColorPicker.AbsolutePosition.X, 0, ColorPicker.AbsoluteSize.X)/ColorPicker.AbsoluteSize.X)
+                                local ColorY = (math.clamp(mouse.Y - ColorPicker.AbsolutePosition.Y, 0, ColorPicker.AbsoluteSize.Y)/ColorPicker.AbsoluteSize.Y)
+                                ColorPick.Position = UDim2.new(ColorX, 0, ColorY, 0)
+
+                                color.s = 1 - ColorX
+                                color.v = 1 - ColorY
+
+                                ColorButton.BackgroundColor3 = Color3.fromHSV(color.h, color.s, color.v)
+                                extra_value.Color = Color3.fromHSV(color.h, color.s, color.v)
+                                color_callback(extra_value)
+                                menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                            end
+                            ColorPicker.MouseButton1Down:Connect(function()
+                                color.update_color()
+                                local moveconnection = mouse.Move:Connect(function()
+                                    color.update_color()
+                                end)
+                                releaseconnection = uis.InputEnded:Connect(function(Mouse)
+                                    if Mouse.UserInputType == Enum.UserInputType.MouseButton1 then
+                                        color.update_color()
+                                        moveconnection:Disconnect()
+                                        releaseconnection:Disconnect()
+                                    end
+                                end)
+                            end)
+
+                            function color.update_hue()
+                                local y = math.clamp(mouse.Y - HuePicker.AbsolutePosition.Y, 0, 148)
+                                HuePick.Position = UDim2.new(0, 0, 0, y)
+                                local hue = y/148
+                                color.h = 1-hue
+                                ColorPicker.ImageColor3 = Color3.fromHSV(color.h, 1, 1)
+                                ColorButton.BackgroundColor3 = Color3.fromHSV(color.h, color.s, color.v)
+                                if TransparencyColor then
+                                    TransparencyColor.ImageColor3 = Color3.fromHSV(color.h, 1, 1)
+                                end
+                                extra_value.Color = Color3.fromHSV(color.h, color.s, color.v)
+                                color_callback(extra_value)
+                                menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+                            end
+                            HuePicker.MouseButton1Down:Connect(function()
+                                color.update_hue()
+                                local moveconnection = mouse.Move:Connect(function()
+                                    color.update_hue()
+                                end)
+                                releaseconnection = uis.InputEnded:Connect(function(Mouse)
+                                    if Mouse.UserInputType == Enum.UserInputType.MouseButton1 then
+                                        color.update_hue()
+                                        moveconnection:Disconnect()
+                                        releaseconnection:Disconnect()
+                                    end
+                                end)
+                            end)
+
+                            function color:set_value(new_value, cb)
+                                extra_value = new_value and new_value or extra_value
+                                menu.values[tab.tab_num][section_name][sector_name][extra_flag] = extra_value
+
+                                local duplicate = Color3.new(extra_value.Color.R, extra_value.Color.G, extra_value.Color.B)
+                                color.h, color.s, color.v = duplicate:ToHSV()
+                                color.h = math.clamp(color.h, 0, 1)
+                                color.s = math.clamp(color.s, 0, 1)
+                                color.v = math.clamp(color.v, 0, 1)
+        
+                                ColorPick.Position = UDim2.new(1 - color.s, 0, 1 - color.v, 0)
+                                ColorPicker.ImageColor3 = Color3.fromHSV(color.h, 1, 1)
+                                ColorButton.BackgroundColor3 = Color3.fromHSV(color.h, color.s, color.v)
+                                HuePick.Position = UDim2.new(0, 0, 1 - color.h, -1)
+
+                                if TransparencyColor then
+                                    TransparencyColor.ImageColor3 = Color3.fromHSV(color.h, 1, 1)
+
+                                    TransparencyPick.Position = UDim2.new(extra_value.Transparency, -1, 0, 0)
+                                end
+
+                                if cb == nil or not cb then
+                                    color_callback(extra_value)
+                                end
+                            end
+                            color:set_value(color_default and color_default, true)
+
+                            menu.on_load_cfg:Connect(function()
+                                color:set_value(menu.values[tab.tab_num][section_name][sector_name][extra_flag])
+                            end)
+
+                            return color
+                        end
+                        
                     elseif type == "Dropdown" then
                         Border.Size = Border.Size + UDim2.new(0, 0, 0, 45)
 
